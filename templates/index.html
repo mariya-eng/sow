@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Free Fire Chatbot</title>
+<style>
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: 'Segoe UI', Arial, sans-serif;
+    }
+
+    body {
+        background: linear-gradient(135deg, #1a1a2e, #16213e);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+
+    .chat-container {
+        width: 100%;
+        max-width: 480px;
+        height: 640px;
+        background: #0f0f1a;
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        border: 1px solid #2a2a40;
+    }
+
+    .chat-header {
+        background: linear-gradient(90deg, #ff6a00, #ee0979);
+        padding: 18px 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .chat-header .icon {
+        font-size: 26px;
+    }
+
+    .chat-header h1 {
+        color: #fff;
+        font-size: 18px;
+    }
+
+    .chat-header p {
+        color: #ffe5d5;
+        font-size: 12px;
+    }
+
+    .chat-messages {
+        flex: 1;
+        padding: 16px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .message {
+        max-width: 80%;
+        padding: 10px 14px;
+        border-radius: 12px;
+        font-size: 14px;
+        line-height: 1.4;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+
+    .bot-message {
+        background: #1e1e30;
+        color: #e8e8f0;
+        align-self: flex-start;
+        border-bottom-left-radius: 2px;
+    }
+
+    .user-message {
+        background: linear-gradient(90deg, #ff6a00, #ee0979);
+        color: #fff;
+        align-self: flex-end;
+        border-bottom-right-radius: 2px;
+    }
+
+    .typing-indicator {
+        align-self: flex-start;
+        color: #888;
+        font-size: 13px;
+        font-style: italic;
+        padding-left: 4px;
+    }
+
+    .chat-input-area {
+        display: flex;
+        padding: 14px;
+        gap: 10px;
+        border-top: 1px solid #2a2a40;
+        background: #14142a;
+    }
+
+    #userInput {
+        flex: 1;
+        padding: 12px 14px;
+        border-radius: 10px;
+        border: 1px solid #2a2a40;
+        background: #1e1e30;
+        color: #fff;
+        font-size: 14px;
+        outline: none;
+    }
+
+    #userInput::placeholder {
+        color: #666;
+    }
+
+    #sendBtn {
+        padding: 0 20px;
+        border: none;
+        border-radius: 10px;
+        background: linear-gradient(90deg, #ff6a00, #ee0979);
+        color: #fff;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    #sendBtn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .chat-messages::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .chat-messages::-webkit-scrollbar-thumb {
+        background: #333;
+        border-radius: 4px;
+    }
+</style>
+</head>
+<body>
+
+<div class="chat-container">
+    <div class="chat-header">
+        <div class="icon">🔥</div>
+        <div>
+            <h1>Free Fire Bot</h1>
+            <p>Ask me anything about Free Fire</p>
+        </div>
+    </div>
+
+    <div class="chat-messages" id="chatMessages">
+        <div class="message bot-message">
+            Hey! I'm Free Fire Bot. Ask me about characters, weapons, maps, ranks, or strategies in Free Fire!
+        </div>
+    </div>
+
+    <div class="chat-input-area">
+        <input type="text" id="userInput" placeholder="Type your Free Fire question..." autocomplete="off">
+        <button id="sendBtn">Send</button>
+    </div>
+</div>
+
+<script>
+    const chatMessages = document.getElementById('chatMessages');
+    const userInput = document.getElementById('userInput');
+    const sendBtn = document.getElementById('sendBtn');
+
+    function addMessage(text, sender) {
+        const msgDiv = document.createElement('div');
+        msgDiv.classList.add('message', sender === 'user' ? 'user-message' : 'bot-message');
+        msgDiv.textContent = text;
+        chatMessages.appendChild(msgDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function showTyping() {
+        const typingDiv = document.createElement('div');
+        typingDiv.classList.add('typing-indicator');
+        typingDiv.id = 'typingIndicator';
+        typingDiv.textContent = 'Free Fire Bot is typing...';
+        chatMessages.appendChild(typingDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function removeTyping() {
+        const typingDiv = document.getElementById('typingIndicator');
+        if (typingDiv) {
+            typingDiv.remove();
+        }
+    }
+
+    async function sendMessage() {
+        const message = userInput.value.trim();
+        if (!message) return;
+
+        addMessage(message, 'user');
+        userInput.value = '';
+        sendBtn.disabled = true;
+        showTyping();
+
+        try {
+            const response = await fetch('/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: message })
+            });
+
+            const data = await response.json();
+            removeTyping();
+            addMessage(data.reply, 'bot');
+        } catch (error) {
+            removeTyping();
+            addMessage('Error connecting to the server. Please try again.', 'bot');
+        } finally {
+            sendBtn.disabled = false;
+            userInput.focus();
+        }
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    userInput.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+</script>
+
+</body>
+</html>
